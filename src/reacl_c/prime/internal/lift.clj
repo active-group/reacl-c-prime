@@ -18,7 +18,7 @@
      (events-wrapper
       attrs1#
       default-is-event?
-      (fn [attrs2#]
-        (child-wrapper attrs2# children# (or ~mod-attrs identity)
+      (fn [attrs2# lift-event-attrs#]
+        (child-wrapper attrs2# children# (or ~mod-attrs identity) lift-event-attrs#
                        (fn [attrs3#]
                          (react-item ~class attrs3#)))))))

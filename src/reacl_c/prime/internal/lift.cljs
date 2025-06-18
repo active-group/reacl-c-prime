@@ -7,15 +7,18 @@
 (defn events-wrapper [attrs event? f]
   (c/with-async
     (fn [a]
-      (f (->> attrs
-              (reduce (fn [res [k v]]
-                        (if (event? k)
-                          (assoc! res k (fn [ev]
-                                          (a (fn [state]
-                                               (v state ev)))))
-                          res))
-                      (transient attrs))
-              (persistent!))))))
+      (let [lift-events (fn [attrs] ;; maybe optionally take event? pred override.
+                          (->> attrs
+                               (reduce (fn [res [k v]]
+                                         (if (event? k)
+                                           (assoc! res k (fn [ev]
+                                                           (a (fn [state]
+                                                                (v state ev)))))
+                                           res))
+                                       (transient attrs))
+                               (persistent!)))]
+        (f (lift-events attrs)
+           lift-events)))))
 
 (defn default-is-event? [k]
   ;; TODO: something more sophisticated; from reacl.dom dom-base/event-attribute?
@@ -58,11 +61,11 @@
     ;; prevents having keys in embedded children - needs a different solution when that's needed.
     :else (c/fragment items)))
 
-(defn child-wrapper [attrs children mod-attrs f]
+(defn child-wrapper [attrs children mod-attrs lift-event-attrs f]
   (child-wrapper-n
    (fn [embed]
      (f (cond-> attrs
-          (some? mod-attrs) (mod-attrs embed)
+          (some? mod-attrs) (mod-attrs embed lift-event-attrs)
           ;; Note: leaving a :children property untouched if children list is empty (used in data-table)
           (not-empty children) (assoc :children (embed (fragment* children))))))))
 
