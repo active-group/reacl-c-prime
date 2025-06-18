@@ -7,9 +7,34 @@
    ["primereact/column" :as co]
    ["react" :as react]))
 
+(defrecord ^:private Column [attrs])
+
+(defn column [attrs]
+  (Column. attrs))
+
+(defn- column-elem [^Column c embed]
+  (react/createElement co/Column
+                       (-> (:attrs c)
+                           (util/opt-update :body util/item-or-fn embed)
+                           (util/opt-update :editor util/item-or-fn embed)
+                           (util/opt-update :filterApply util/item-or-fn embed)
+                           (util/opt-update :filterElement util/item-or-fn embed)
+                           (util/opt-update :filterFooter util/item-or-fn embed)
+                           (util/opt-update :filterHeader util/item-or-fn embed)
+                           (util/opt-update :footer util/item-or-fn embed)
+                           (util/opt-update :header util/item-or-fn embed)
+                           ;; TODO: Columns have events too
+                           (clj->js))))
+
+(defn- column-elems [columns embed]
+  (mapv (fn [c]
+          (column-elem c embed))
+        columns))
+
 (lift/def-react-container ^:private base dt/DataTable
   (fn [attrs embed]
     (-> attrs
+        (util/opt-update :children column-elems embed)
         (util/opt-update :emptyMessage util/item-or-fn embed)
         ;; TODO: :footerColumnGroup and :headerColumnGroup have to be made from ColumnGroup, Column and Row components - that's something special.
         ;; TODO: paginatorDropdownAppendTo ?
@@ -24,11 +49,6 @@
 ;; sake of refential transparency we use a simple record, and create
 ;; elements on render.
 
-(defrecord ^:private Column [attrs])
-
-(defn column [attrs]
-  (Column. attrs))
-
 (defn- dom-like-args [attrs columns]
   (if (instance? Column attrs)
     [{} (cons attrs columns)]
@@ -36,7 +56,5 @@
 
 (c/defn-item raw [attrs & columns]
   (let [[attrs columns] (dom-like-args attrs columns)]
-    (assert (not (contains? attrs :children)))
-    (base (assoc attrs :children (mapv (fn [^Column c]
-                                         (react/createElement co/Column (clj->js (:attrs c))))
-                                       columns)))))
+    (assert (every? #(instance? Column %) columns))
+    (base (assoc attrs :children columns))))
