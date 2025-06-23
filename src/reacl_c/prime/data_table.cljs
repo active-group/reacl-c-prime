@@ -67,6 +67,15 @@
              (clj->js))
          (mapv #(embed-row % embed lift-events) (:children c))))
 
+(defn- virtual-scroller-attrs [attrs embed lift-events]
+  ;; TODO: if we add the VirtualScroller component, this fn could be shared with it.
+  (-> attrs
+      (util/opt-update :itemTemplate util/item-or-fn embed)
+      (util/opt-update :contentTemplate util/item-or-fn embed)
+      (util/opt-update :loadingTemplate util/item-or-fn embed)
+      (lift-events)
+      (clj->js)))
+
 (lift/def-react-container ^:private base dt/DataTable
   (fn [attrs embed lift-events]
     (-> attrs
@@ -78,6 +87,7 @@
         (util/opt-update :paginatorLeft embed)
         (util/opt-update :paginatorRight embed)
         ;; TODO: paginatorTemplate ?
+        (util/opt-update :virtualScrollerOptions virtual-scroller-attrs embed lift-events)
         (util/opt-update :rowGroupFooterTemplate util/item-or-fn embed)
         (util/opt-update :rowGroupHeaderTemplate util/item-or-fn embed))))
 
