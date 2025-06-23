@@ -6,6 +6,8 @@
    [reacl-c.core :as c :include-macros true]
    ["primereact/datatable" :as dt]
    ["primereact/column" :as co]
+   ["primereact/columngroup" :as cg]
+   ["primereact/row" :as ro]
    ["react" :as react]))
 
 (defrecord ^:private Column [attrs])
@@ -32,12 +34,46 @@
           (column-elem c embed lift-events))
         columns))
 
+(defn- dom-like-args [child-pred attrs children]
+  (if (child-pred attrs)
+    [{} (cons attrs children)]
+    [attrs children]))
+
+(defrecord ^:private ColumnGroup [attrs children])
+
+(defrecord ^:private Row [attrs children])
+
+(defn column-group [attrs & children]
+  ;; column-groups may contain rows.
+  (let [[attrs children] (dom-like-args #(instance? Row %) attrs children)]
+    (ColumnGroup. attrs children)))
+
+(defn row [attrs & children]
+  ;; rows may contain columns
+  (let [[attrs children] (dom-like-args #(instance? Column %) attrs children)]
+    (Row. attrs children)))
+
+(defn- embed-row [^Row c embed lift-events]
+  ;; rows may contain columns
+  (apply react/createElement ro/Row
+         (-> (:attrs c)
+             (clj->js))
+         (column-elems (:children c) embed lift-events)))
+
+(defn- embed-column-group [^ColumnGroup c embed lift-events]
+  ;; column-groups may contain rows.
+  (apply react/createElement cg/ColumnGroup
+         (-> (:attrs c)
+             (clj->js))
+         (mapv #(embed-row % embed lift-events) (:children c))))
+
 (lift/def-react-container ^:private base dt/DataTable
   (fn [attrs embed lift-events]
     (-> attrs
         (util/opt-update :children column-elems embed lift-events)
         (util/opt-update :emptyMessage util/item-or-fn embed)
-        ;; TODO: :footerColumnGroup and :headerColumnGroup have to be made from ColumnGroup, Column and Row components - that's something special.
+        (util/opt-update :footerColumnGroup embed-column-group embed lift-events)
+        (util/opt-update :headerColumnGroup embed-column-group embed lift-events)
         ;; TODO: paginatorDropdownAppendTo ?
         (util/opt-update :paginatorLeft embed)
         (util/opt-update :paginatorRight embed)
@@ -50,13 +86,8 @@
 ;; sake of refential transparency we use a simple record, and create
 ;; elements on render.
 
-(defn- dom-like-args [attrs columns]
-  (if (instance? Column attrs)
-    [{} (cons attrs columns)]
-    [attrs columns]))
-
 (c/defn-item raw [attrs & columns]
-  (let [[attrs columns] (dom-like-args attrs columns)]
+  (let [[attrs columns] (dom-like-args #(instance? Column %) attrs columns)]
     (assert (every? #(instance? Column %) columns))
     (base (assoc attrs :children columns))))
 
