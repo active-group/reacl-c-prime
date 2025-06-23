@@ -12,3 +12,8 @@
     (if (c/item? i-f)
       (embed i-f)
       (comp embed i-f))))
+
+(defn js-update [obj key f]
+  (js/Object.assign #js {}
+                    obj
+                    (js-obj key (f (aget obj key)))))

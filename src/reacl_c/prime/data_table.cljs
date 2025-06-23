@@ -4,6 +4,7 @@
    [reacl-c.prime.internal.lift :as lift :include-macros true]
    [reacl-c.prime.internal.util :as util]
    [reacl-c.core :as c :include-macros true]
+   [reacl-c.interop.react :as interop]
    ["primereact/datatable" :as dt]
    ["primereact/column" :as co]
    ["primereact/columngroup" :as cg]
@@ -68,13 +69,57 @@
          (mapv #(embed-row % embed lift-events) (:children c))))
 
 (defn- virtual-scroller-attrs [attrs embed lift-events]
-  ;; TODO: if we add the VirtualScroller component, this fn could be shared with it.
+  ;; Note: if we add the VirtualScroller component, this fn could be shared with it.
   (-> attrs
       (util/opt-update :itemTemplate util/item-or-fn embed)
       (util/opt-update :contentTemplate util/item-or-fn embed)
       (util/opt-update :loadingTemplate util/item-or-fn embed)
       (lift-events)
       (clj->js)))
+
+(c/defn-effect ^:private call-handler [f ev]
+  (f ev))
+
+(defn- paginator-template-attrs [attrs embed]
+  ;; Note: if we add the Paginator component, this fn could be shared with it.
+  (let [lift-event-handler
+        (fn [f]
+          ;; turn a react event handler f, into a reacl-c event handler.
+          (fn [_ ev]
+            (c/return :action (call-handler f ev))))
+        lift-element
+        (fn [elem]
+          (interop/lift (fn [_] elem) #js {}))
+        embed* (fn [f]
+                 (fn [options]
+                   ;; Note: could be optimized: when .element is used, we don't need the lift/embed combination
+                   (embed (f (-> options
+                                 (util/js-update "element" lift-element)
+                                 (util/js-update "onClick" lift-event-handler))))))]
+    (-> attrs
+        ;; :layout is a string with the component names to define what's visible and the order.
+        (util/opt-update :FirstPageLink embed*)
+        (util/opt-update :PrevPageLink embed*)
+        (util/opt-update :PageLinks embed*)
+        (util/opt-update :NextPageLink embed*)
+        (util/opt-update :LastPageLink embed*)
+        (util/opt-update :RowsPerPageDropdown embed*)
+        (util/opt-update :JumpToPageInput embed*)
+        (util/opt-update :CurrentPageReport embed*)
+        (clj->js))))
+
+(def default-paginator
+  ;; Note: the default paginatorTemplate is not the same as no paginatorTemplate :-/
+  (let [dflt (fn [options]
+               (.-element options))]
+    {:FirstPageLink dflt
+     :PrevPageLink dflt
+     :PageLinks dflt
+     :NextPageLink dflt
+     :LastPageLink dflt
+     :RowsPerPageDropdown dflt
+     :JumpToPageInput dflt
+     :CurrentPageReport dflt}))
 
 (lift/def-react-container ^:private base dt/DataTable
   (fn [attrs embed lift-events]
@@ -83,10 +128,9 @@
         (util/opt-update :emptyMessage util/item-or-fn embed)
         (util/opt-update :footerColumnGroup embed-column-group embed lift-events)
         (util/opt-update :headerColumnGroup embed-column-group embed lift-events)
-        ;; TODO: paginatorDropdownAppendTo ?
         (util/opt-update :paginatorLeft embed)
         (util/opt-update :paginatorRight embed)
-        ;; TODO: paginatorTemplate ?
+        (util/opt-update :paginatorTemplate paginator-template-attrs embed)
         (util/opt-update :virtualScrollerOptions virtual-scroller-attrs embed lift-events)
         (util/opt-update :rowGroupFooterTemplate util/item-or-fn embed)
         (util/opt-update :rowGroupHeaderTemplate util/item-or-fn embed))))
