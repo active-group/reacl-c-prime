@@ -1,6 +1,6 @@
 {:paths ["src"]
- :deps {de.active-group/reacl-c {:mvn/version "0.12.0"}}
+ :deps {de.active-group/reacl-c {:mvn/version "0.12.1"}}
  :aliases
  {:dev {:extra-paths ["dev"]
-        :extra-deps {thheller/shadow-cljs {:mvn/version "3.1.5"}
+        :extra-deps {thheller/shadow-cljs {:mvn/version "3.1.7"}
                      de.active-group/active-data {:mvn/version "0.3.3"}}}}}

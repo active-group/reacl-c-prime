@@ -36,13 +36,14 @@
          value)))
 
 (lift/def-react-container raw ms/MultiSelect
-  (fn [attrs embed lift-events]
+  (fn [attrs embed embed-handler]
     (-> attrs
         ;; TODO: embed: emptyFilterMessage, filterTemplate, itemTemplate, optionGroupTemplate, panelFooterTemplate, panelHeaderTemplate, selectedItemTemplate
         ;; TODO: virtualScrollerOptions
         ;; TODO: inputRef?
         (util/opt-update :value (comp to-array (partial fixup-value (:options attrs))))
-        (util/opt-update :options (comp to-array to-options)))))
+        (util/opt-update :options (comp to-array to-options))
+        (lift/embed-event-attrs embed-handler lift/default-is-event?))))
 
 (defn- return-value [_value ev]
   (c/return :state (array-seq (.-value ev))))

@@ -5,20 +5,17 @@
 (defmacro def-react [name class]
   ;; Note: for dom-like classes, with attrs containing event-handlers for example.
   `(dom/defn-dom ~name :static [attrs1#]
-     (events-wrapper attrs1#
-                     default-is-event?
-                     (fn [attrs2#]
-                       (react-item ~class attrs2#)))))
+     (child-wrapper attrs1# nil
+                    (fn [attrs2# embed-item# embed-handler#]
+                      (react-item ~class (embed-event-attrs attrs2# embed-handler# default-is-event?))))))
 
 (defmacro def-react-container [name class & [mod-attrs]]
   ;; Note: for dom-like container classes, with attrs containing event-handlers and child items for example.
   ;; Note: special attrs that can contain items also make it a container.
-  ;; mod-attrs: (fn [attrs embed-item] ...attrs)
+  ;; mod-attrs: (fn [attrs embed-item embed-event-handler] ...attrs); if given, event-handlers are not automatically lifted.
   `(dom/defn-dom ~name [attrs1# & children#]
-     (events-wrapper
-      attrs1#
-      default-is-event?
-      (fn [attrs2# lift-event-attrs#]
-        (child-wrapper attrs2# children# (or ~mod-attrs identity) lift-event-attrs#
-                       (fn [attrs3#]
-                         (react-item ~class attrs3#)))))))
+     (child-wrapper attrs1# children#
+                    (fn [attrs2# embed-item# embed-handler#]
+                      (react-item ~class (if-let [g# ~mod-attrs]
+                                           (g# attrs2# embed-item# embed-handler#)
+                                           (embed-event-attrs attrs2# embed-handler# default-is-event?)))))))

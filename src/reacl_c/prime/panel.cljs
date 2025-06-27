@@ -6,13 +6,14 @@
    ["primereact/panel" :as panel]))
 
 (lift/def-react-container raw panel/Panel
-  (fn [attrs embed]
+  (fn [attrs embed embed-handler]
     (-> attrs
         (util/opt-update :header embed)
         (util/opt-update :footer embed)
         (util/opt-update :icons util/item-or-fn embed)
         (util/opt-update :headerTemplate util/item-or-fn embed)
-        (util/opt-update :footerTemplate util/item-or-fn embed))))
+        (util/opt-update :footerTemplate util/item-or-fn embed)
+        (lift/embed-event-attrs embed-handler lift/default-is-event?))))
 
 ;; Methods
 

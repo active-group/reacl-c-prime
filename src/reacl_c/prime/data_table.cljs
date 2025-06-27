@@ -89,10 +89,9 @@
             (c/return :action (call-handler f ev))))
         lift-element
         (fn [elem]
-          (interop/lift (fn [_] elem) #js {}))
+          (interop/element elem))
         embed* (fn [f]
                  (fn [options]
-                   ;; Note: could be optimized: when .element is used, we don't need the lift/embed combination
                    (embed (f (-> options
                                  (util/js-update "element" lift-element)
                                  (util/js-update "onClick" lift-event-handler))))))]
@@ -122,18 +121,20 @@
      :CurrentPageReport dflt}))
 
 (lift/def-react-container ^:private base dt/DataTable
-  (fn [attrs embed lift-events]
-    (-> attrs
-        (util/opt-update :children column-elems embed lift-events)
-        (util/opt-update :emptyMessage util/item-or-fn embed)
-        (util/opt-update :footerColumnGroup embed-column-group embed lift-events)
-        (util/opt-update :headerColumnGroup embed-column-group embed lift-events)
-        (util/opt-update :paginatorLeft embed)
-        (util/opt-update :paginatorRight embed)
-        (util/opt-update :paginatorTemplate paginator-template-attrs embed)
-        (util/opt-update :virtualScrollerOptions virtual-scroller-attrs embed lift-events)
-        (util/opt-update :rowGroupFooterTemplate util/item-or-fn embed)
-        (util/opt-update :rowGroupHeaderTemplate util/item-or-fn embed))))
+  (fn [attrs embed embed-handler]
+    (let [lift-events (partial lift/embed-event-attrs embed-handler lift/default-is-event?)]
+      (-> attrs
+          (util/opt-update :children column-elems embed lift-events)
+          (util/opt-update :emptyMessage util/item-or-fn embed)
+          (util/opt-update :footerColumnGroup embed-column-group embed lift-events)
+          (util/opt-update :headerColumnGroup embed-column-group embed lift-events)
+          (util/opt-update :paginatorLeft embed)
+          (util/opt-update :paginatorRight embed)
+          (util/opt-update :paginatorTemplate paginator-template-attrs embed)
+          (util/opt-update :virtualScrollerOptions virtual-scroller-attrs embed lift-events)
+          (util/opt-update :rowGroupFooterTemplate util/item-or-fn embed)
+          (util/opt-update :rowGroupHeaderTemplate util/item-or-fn embed)
+          (lift-events)))))
 
 ;; Note: Columns as React elements are just a fancy way to pass
 ;; parameters via JSX; No need to have them as reacl-c items. For the
