@@ -1,5 +1,6 @@
 (ns ^:no-doc reacl-c.prime.internal.lift
   (:require [reacl-c.core :as c :include-macros true]
+            [reacl-c.dom :include-macros true]
             [reacl-c.main.react :as main]
             [reacl-c.main :as c-main]
             [reacl-c.interop.react :as interop]))
