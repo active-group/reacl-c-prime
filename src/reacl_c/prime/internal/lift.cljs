@@ -15,8 +15,12 @@
        (persistent!)))
 
 (defn default-is-event? [k]
-  ;; TODO: something more sophisticated; from reacl.dom dom-base/event-attribute?
-  (.startsWith (name k) "on"))
+  ;; TODO: something reacl.dom dom-base/event-attribute?
+  (let [s (name k)]
+    (and (>= (count s) 3)
+         (.startsWith s "on")
+         (let [c (.substring s 2 3)]
+           (= c (.toUpperCase c))))))
 
 (defn- fragment* [items]
   ;; Note: the fragment works around a react warning of "children need a key" for now.
